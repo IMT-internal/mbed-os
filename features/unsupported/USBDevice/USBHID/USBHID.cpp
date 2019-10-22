@@ -238,8 +238,8 @@ const uint8_t * USBHID::configurationDesc() {
         0x01,                               // bNumInterfaces
         DEFAULT_CONFIGURATION,              // bConfigurationValue
         0x00,                               // iConfiguration
-        C_RESERVED | C_SELF_POWERED,        // bmAttributes
-        C_POWER(0),                         // bMaxPower
+        C_RESERVED,                         // bmAttributes
+        C_POWER(300),                       // bMaxPower
 
         INTERFACE_DESCRIPTOR_LENGTH,        // bLength
         INTERFACE_DESCRIPTOR,               // bDescriptorType
