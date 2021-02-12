@@ -16,6 +16,15 @@
 * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
+//#define DEBUG
+
+#include "logger.h"
+
+#ifndef DEBUG
+#undef dlog
+#define dlog(...)
+#endif
+
 #include "stdint.h"
 
 #include "USBEndpoints.h"
@@ -43,9 +52,7 @@
 bool USBDevice::requestGetDescriptor(void)
 {
     bool success = false;
-#ifdef DEBUG
-    printf("get descr: type: %d\r\n", DESCRIPTOR_TYPE(transfer.setup.wValue));
-#endif
+    dlog("get descr: type: %d", DESCRIPTOR_TYPE(transfer.setup.wValue));
     switch (DESCRIPTOR_TYPE(transfer.setup.wValue))
     {
         case DEVICE_DESCRIPTOR:
@@ -54,9 +61,7 @@ bool USBDevice::requestGetDescriptor(void)
                 if ((deviceDesc()[0] == DEVICE_DESCRIPTOR_LENGTH) \
                     && (deviceDesc()[1] == DEVICE_DESCRIPTOR))
                 {
-#ifdef DEBUG
-                    printf("device descr\r\n");
-#endif
+                    dlog("device descr");
                     transfer.remaining = DEVICE_DESCRIPTOR_LENGTH;
                     transfer.ptr = (uint8_t*)deviceDesc();
                     transfer.direction = DEVICE_TO_HOST;
@@ -70,9 +75,7 @@ bool USBDevice::requestGetDescriptor(void)
                 if ((configurationDesc()[0] == CONFIGURATION_DESCRIPTOR_LENGTH) \
                     && (configurationDesc()[1] == CONFIGURATION_DESCRIPTOR))
                 {
-#ifdef DEBUG
-                    printf("conf descr request\r\n");
-#endif
+                    dlog("conf descr request");
                     /* Get wTotalLength */
                     transfer.remaining = configurationDesc()[2] \
                         | (configurationDesc()[3] << 8);
@@ -84,81 +87,61 @@ bool USBDevice::requestGetDescriptor(void)
             }
             break;
         case STRING_DESCRIPTOR:
-#ifdef DEBUG
-            printf("str descriptor\r\n");
-#endif
+            dlog("str descriptor");
             switch (DESCRIPTOR_INDEX(transfer.setup.wValue))
             {
                             case STRING_OFFSET_LANGID:
-#ifdef DEBUG
-                                printf("1\r\n");
-#endif
                                 transfer.remaining = stringLangidDesc()[0];
                                 transfer.ptr = (uint8_t*)stringLangidDesc();
                                 transfer.direction = DEVICE_TO_HOST;
                                 success = true;
+                                dlog("D2H: LANGID [%s]", transfer.ptr);
                                 break;
                             case STRING_OFFSET_IMANUFACTURER:
-#ifdef DEBUG
-                                printf("2\r\n");
-#endif
                                 transfer.remaining =  stringImanufacturerDesc()[0];
                                 transfer.ptr = (uint8_t*)stringImanufacturerDesc();
                                 transfer.direction = DEVICE_TO_HOST;
                                 success = true;
+                                dlog("D2H: IMANUFACTURER [%s]", transfer.ptr);
                                 break;
                             case STRING_OFFSET_IPRODUCT:
-#ifdef DEBUG
-                                printf("3\r\n");
-#endif
                                 transfer.remaining = stringIproductDesc()[0];
                                 transfer.ptr = (uint8_t*)stringIproductDesc();
                                 transfer.direction = DEVICE_TO_HOST;
                                 success = true;
+                                dlog("D2H: IPRODUCT [%s]", transfer.ptr);
                                 break;
                             case STRING_OFFSET_ISERIAL:
-#ifdef DEBUG
-                                printf("4\r\n");
-#endif
                                 transfer.remaining = stringIserialDesc()[0];
                                 transfer.ptr = (uint8_t*)stringIserialDesc();
                                 transfer.direction = DEVICE_TO_HOST;
                                 success = true;
+                                dlog("D2H: ISERIAL [%s]", transfer.ptr);
                                 break;
                             case STRING_OFFSET_ICONFIGURATION:
-#ifdef DEBUG
-                                printf("5\r\n");
-#endif
                                 transfer.remaining = stringIConfigurationDesc()[0];
                                 transfer.ptr = (uint8_t*)stringIConfigurationDesc();
                                 transfer.direction = DEVICE_TO_HOST;
                                 success = true;
+                                dlog("D2H: ICONFIGURATION [%s]", transfer.ptr);
                                 break;
                             case STRING_OFFSET_IINTERFACE:
-#ifdef DEBUG
-                                printf("6\r\n");
-#endif
                                 transfer.remaining = stringIinterfaceDesc()[0];
                                 transfer.ptr = (uint8_t*)stringIinterfaceDesc();
                                 transfer.direction = DEVICE_TO_HOST;
                                 success = true;
+                                dlog("D2H: IINTERFACE [%s]", transfer.ptr);
                                 break;
             }
             break;
         case INTERFACE_DESCRIPTOR:
-#ifdef DEBUG
-            printf("interface descr\r\n");
-#endif
+            dlog("interface descr");
         case ENDPOINT_DESCRIPTOR:
-#ifdef DEBUG
-            printf("endpoint descr\r\n");
-#endif
+            dlog("endpoint descr");
             /* TODO: Support is optional, not implemented here */
             break;
         default:
-#ifdef DEBUG
-            printf("ERROR\r\n");
-#endif
+	    dlog("ERROR: unknown request");
             break;
     }
 
@@ -548,15 +531,15 @@ bool USBDevice::controlSetup(void)
     transfer.zlp = false;
     transfer.notify = false;
 
-#ifdef DEBUG
-    printf("dataTransferDirection: %d\r\nType: %d\r\nRecipient: %d\r\nbRequest: %d\r\nwValue: %d\r\nwIndex: %d\r\nwLength: %d\r\n",transfer.setup.bmRequestType.dataTransferDirection,
-                                                                                                                                   transfer.setup.bmRequestType.Type,
-                                                                                                                                   transfer.setup.bmRequestType.Recipient,
-                                                                                                                                   transfer.setup.bRequest,
-                                                                                                                                   transfer.setup.wValue,
-                                                                                                                                   transfer.setup.wIndex,
-                                                                                                                                   transfer.setup.wLength);
-#endif
+    dlog("dataTransferDirection: %d\r\nType: %d\r\nRecipient: %d\r\nbRequest: %d\r\n"
+	 "wValue: %d\r\nwIndex: %d\r\nwLength: %d",
+	 transfer.setup.bmRequestType.dataTransferDirection,
+	 transfer.setup.bmRequestType.Type,
+	 transfer.setup.bmRequestType.Recipient,
+	 transfer.setup.bRequest,
+	 transfer.setup.wValue,
+	 transfer.setup.wIndex,
+	 transfer.setup.wLength);
 
     /* Class / vendor specific */
     success = USBCallback_request();
@@ -566,9 +549,7 @@ bool USBDevice::controlSetup(void)
         /* Standard requests */
         if (!requestSetup())
         {
-#ifdef DEBUG
-            printf("fail!!!!\r\n");
-#endif
+            dlog("Failure!");
             return false;
         }
     }
@@ -687,9 +668,8 @@ void USBDevice::EP0out(void)
 
 void USBDevice::EP0in(void)
 {
-#ifdef DEBUG
-    printf("EP0IN\r\n");
-#endif
+    dlog("EP0IN");
+
     /* Endpoint 0 IN data event */
     if (!controlIn())
     {
@@ -815,7 +795,6 @@ bool USBDevice::readStart(uint8_t endpoint, uint32_t maxSize)
     return endpointRead(endpoint, maxSize) == EP_PENDING;
 }
 
-
 bool USBDevice::write(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_t maxSize)
 {
     EP_STATUS result;
@@ -825,27 +804,29 @@ bool USBDevice::write(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_
         return false;
     }
 
-
     if(!configured()) {
         return false;
     }
 
+    dlog("write: requested endpoint %d write", endpoint);
     /* Send report */
     result = endpointWrite(endpoint, buffer, size);
 
     if (result != EP_PENDING)
     {
+	dlog("write: failure with result %d (expected %d)", result, EP_PENDING);
         return false;
     }
 
+    dlog("write: waiting for confirmation");
     /* Wait for completion */
     do {
         result = endpointWriteResult(endpoint);
     } while ((result == EP_PENDING) && configured());
 
+    dlog("write: completed with result %d (expected %d)", result, EP_COMPLETED);
     return (result == EP_COMPLETED);
 }
-
 
 bool USBDevice::writeNB(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint32_t maxSize)
 {
@@ -861,15 +842,19 @@ bool USBDevice::writeNB(uint8_t endpoint, uint8_t * buffer, uint32_t size, uint3
     }
 
     /* Send report */
+    dlog("NB write: requested endpoint %d write", endpoint);
     result = endpointWrite(endpoint, buffer, size);
 
     if (result != EP_PENDING)
     {
+	dlog("NB write: failure with result %d (expected %d)", result, EP_PENDING);
         return false;
     }
 
+    dlog("NB write: operation status requested");
     result = endpointWriteResult(endpoint);
 
+    dlog("NB write: completed with result %d (expected %d)", result, EP_COMPLETED);
     return (result == EP_COMPLETED);
 }
 
@@ -885,9 +870,11 @@ bool USBDevice::readEP(uint8_t endpoint, uint8_t * buffer, uint32_t * size, uint
 
     /* Wait for completion */
     do {
+	dlog("read: read endpoint %d", endpoint);
         result = endpointReadResult(endpoint, buffer, size);
     } while ((result == EP_PENDING) && configured());
 
+    dlog("read: completed with code %d (expected(%d)",result, EP_COMPLETED);
     return (result == EP_COMPLETED);
 }
 
@@ -901,6 +888,10 @@ bool USBDevice::readEP_NB(uint8_t endpoint, uint8_t * buffer, uint32_t * size, u
     }
 
     result = endpointReadResult(endpoint, buffer, size);
+#if defined(DEBUG)
+    if (result == EP_COMPLETED)
+	    dlog("NB read: completed with result %d (expected %d)", result, EP_COMPLETED);
+#endif
 
     return (result == EP_COMPLETED);
 }
